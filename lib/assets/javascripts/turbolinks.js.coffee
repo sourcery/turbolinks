@@ -4,6 +4,7 @@ referer        = document.location.href
 loadedAssets   = null
 pageCache      = {}
 createDocument = null
+scriptsEnabled = true
 
 visit = (url) ->
   if browserSupportsPushState
@@ -13,6 +14,11 @@ visit = (url) ->
   else
     document.location.href = url
 
+enableScripts = ->
+  scriptsEnabled = true
+
+disableScripts = ->
+  scriptsEnabled = false
 
 fetchReplacement = (url) ->
   triggerEvent 'page:fetch'
@@ -78,13 +84,14 @@ changePage = (title, body, runScripts) ->
   triggerEvent 'page:change'
 
 executeScriptTags = ->
-  for script in document.body.getElementsByTagName 'script' when script.type in ['', 'text/javascript']
-    copy = document.createElement 'script'
-    copy.setAttribute attr.name, attr.value for attr in script.attributes
-    copy.appendChild document.createTextNode script.innerHTML
-    { parentNode, nextSibling } = script
-    parentNode.removeChild script
-    parentNode.insertBefore copy, nextSibling
+  if scriptsEnabled
+    for script in document.body.getElementsByTagName 'script' when script.type in ['', 'text/javascript']
+      copy = document.createElement 'script'
+      copy.setAttribute attr.name, attr.value for attr in script.attributes
+      copy.appendChild document.createTextNode script.innerHTML
+      { parentNode, nextSibling } = script
+      parentNode.removeChild script
+      parentNode.insertBefore copy, nextSibling
 
 
 reflectNewUrl = (url) ->
@@ -219,4 +226,4 @@ if browserSupportsPushState
     fetchHistory event.state if event.state?.turbolinks
 
 # Call Turbolinks.visit(url) from client code
-@Turbolinks = { visit }
+@Turbolinks = { visit, enableScripts, disableScripts }
