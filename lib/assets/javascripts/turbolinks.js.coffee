@@ -6,6 +6,7 @@ pageCache      = {}
 createDocument = null
 requestMethod  = document.cookie.match(/request_method=(\w+)/)?[1].toUpperCase() or ''
 xhr            = null
+scriptsEnabled = true
 
 visit = (url) ->
   if browserSupportsPushState
@@ -15,6 +16,11 @@ visit = (url) ->
   else
     document.location.href = url
 
+enableScripts = ->
+  scriptsEnabled = true
+
+disableScripts = ->
+  scriptsEnabled = false
 
 fetchReplacement = (url) ->
   triggerEvent 'page:fetch'
@@ -30,7 +36,7 @@ fetchReplacement = (url) ->
 
   xhr.onload = =>
     triggerEvent 'page:receive'
-    
+
     if invalidContent(xhr) or assetsChanged (doc = createDocument xhr.responseText)
       document.location.reload()
     else
@@ -85,14 +91,15 @@ changePage = (title, body, runScripts) ->
   triggerEvent 'page:change'
 
 executeScriptTags = ->
-  scripts = Array::slice.call document.body.getElementsByTagName 'script'
-  for script in scripts when script.type in ['', 'text/javascript']
-    copy = document.createElement 'script'
-    copy.setAttribute attr.name, attr.value for attr in script.attributes
-    copy.appendChild document.createTextNode script.innerHTML
-    { parentNode, nextSibling } = script
-    parentNode.removeChild script
-    parentNode.insertBefore copy, nextSibling
+  if scriptsEnabled
+    scripts = Array::slice.call document.body.getElementsByTagName 'script'
+    for script in scripts when script.type in ['', 'text/javascript']
+      copy = document.createElement 'script'
+      copy.setAttribute attr.name, attr.value for attr in script.attributes
+      copy.appendChild document.createTextNode script.innerHTML
+      { parentNode, nextSibling } = script
+      parentNode.removeChild script
+      parentNode.insertBefore copy, nextSibling
 
 removeNoscriptTags = ->
   noscriptTags = Array::slice.call document.body.getElementsByTagName 'noscript'
@@ -260,4 +267,4 @@ requestMethodIsSafe =
 initializeTurbolinks() if browserSupportsPushState and browserIsntBuggy and requestMethodIsSafe
 
 # Call Turbolinks.visit(url) from client code
-@Turbolinks = { visit }
+@Turbolinks = { visit, enableScripts, disableScripts }
